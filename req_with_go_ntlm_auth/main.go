@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 
 	"github.com/anynines/go-ntlm-auth/ntlm"
@@ -29,11 +30,18 @@ func main() {
 	proxyUrl, err := url.Parse(*proxy)
 	myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 
-	res, err := ntlm.DoNTLMRequest(myClient, req)
+	resp, err := ntlm.DoNTLMRequest(myClient, req)
 	if err != nil {
 		fmt.Printf("NTLM request failed: %v\n", err.Error())
 		return
 	}
-	fmt.Printf("NTLM seemed to work\n")
-	fmt.Printf("res = %v\n", res)
+	defer resp.Body.Close()
+
+	dump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		fmt.Printf("Failed to dump response: %v", err)
+		return
+	}
+
+	fmt.Printf("%q\n", dump)
 }
